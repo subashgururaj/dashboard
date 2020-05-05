@@ -1,11 +1,19 @@
-FROM docker.io/nginx:latest
+FROM docker.io/openjdk:8-jre
 
-COPY default.conf /etc/nginx/conf.d/default.conf.templ
-COPY conf-builder.sh /usr/bin/conf-builder.sh
-COPY html /usr/share/nginx/html
-RUN chown nginx:nginx /usr/share/nginx/html
+MAINTAINER Hygieia@capitalone.com
 
-EXPOSE 80 443
+RUN mkdir /hygieia /hygieia/config
 
-CMD conf-builder.sh &&\
-  nginx -g "daemon off;"
+COPY hygieia/ /hygieia
+COPY api-properties-builder.sh /hygieia/
+
+RUN chmod -R a+x /hygieia
+WORKDIR /hygieia
+RUN sed -i -e 's/\r$//' ./api-properties-builder.sh
+
+VOLUME ["/hygieia/logs"]
+
+EXPOSE 8080
+
+CMD ./api-properties-builder.sh &&
+java -Djava.security.egd=file:/dev/./urandom -jar api.jar --spring.config.location=/hygieia/config/hygieia-api.properties
